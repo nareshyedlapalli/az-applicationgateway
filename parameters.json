@@ -1,0 +1,67 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "eastus2"
+        },
+        "applicationGatewayName": {
+            "value": "fbitn-online-application-gateway-dev-eu2-01"
+        },
+        "tier": {
+            "value": "WAF_v2"
+        },
+        "skuSize": {
+            "value": "WAF_v2"
+        },
+        "capacity": {
+            "value": 1
+        },
+        "subnetName": {
+            "value": "snet-online-development-01-waf-eastus2-01"
+        },
+        "zones": {
+            "value": [
+                "1",
+                "2",
+                "3"
+            ]
+        },
+        "wafPolicyName": {
+            "value": "waf-fbitn-online-application-gateway-dev-eu2-01"
+        },
+        "publicIpZones": {
+            "value": [
+                "1",
+                "2",
+                "3"
+            ]
+        },
+        "publicIpAddressName": {
+            "value": [
+                "pip-fbitn-online-application-gateway-dev-eu2-01"
+            ]
+        },
+        "sku": {
+            "value": [
+                "Standard"
+            ]
+        },
+        "allocationMethod": {
+            "value": [
+                "Static"
+            ]
+        },
+        "ipAddressVersion": {
+            "value": [
+                "IPv4"
+            ]
+        },
+        "privateIpAddress": {
+            "value": []
+        },
+        "autoScaleMaxCapacity": {
+            "value": 2
+        }
+    }
+}

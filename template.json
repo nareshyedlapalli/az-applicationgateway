@@ -1,0 +1,225 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "applicationGatewayName": {
+            "type": "string"
+        },
+        "tier": {
+            "type": "string"
+        },
+        "skuSize": {
+            "type": "string"
+        },
+        "capacity": {
+            "type": "int",
+            "defaultValue": 2
+        },
+        "subnetName": {
+            "type": "string"
+        },
+        "zones": {
+            "type": "array"
+        },
+        "wafPolicyName": {
+            "type": "string"
+        },
+        "publicIpZones": {
+            "type": "array"
+        },
+        "publicIpAddressName": {
+            "type": "array"
+        },
+        "sku": {
+            "type": "array"
+        },
+        "allocationMethod": {
+            "type": "array"
+        },
+        "ipAddressVersion": {
+            "type": "array"
+        },
+        "privateIpAddress": {
+            "type": "array"
+        },
+        "autoScaleMaxCapacity": {
+            "type": "int"
+        }
+    },
+    "variables": {
+        "vnetId": "/subscriptions/61114f65-fccb-47d8-9dba-c77be4f114ea/resourceGroups/fbitn-vnet-eastus2/providers/Microsoft.Network/virtualNetworks/vnet-online-development-01-eastus2-01",
+        "publicIPRef": [
+            "[resourceId('Microsoft.Network/publicIPAddresses/', parameters('publicIpAddressName')[0])]"
+        ],
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('subnetName'))]",
+        "applicationGatewayId": "[resourceId('Microsoft.Network/applicationGateways', parameters('applicationGatewayName'))]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('applicationGatewayName')]",
+            "type": "Microsoft.Network/applicationGateways",
+            "apiVersion": "2023-02-01",
+            "location": "[parameters('location')]",
+            "zones": "[parameters('zones')]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/', parameters('wafPolicyName'))]",
+                "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicIpAddressName')[0])]"
+            ],
+            "tags": {},
+            "properties": {
+                "sku": {
+                    "name": "[parameters('skuSize')]",
+                    "tier": "[parameters('tier')]"
+                },
+                "gatewayIPConfigurations": [
+                    {
+                        "name": "appGatewayIpConfig",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+                        }
+                    }
+                ],
+                "frontendIPConfigurations": [
+                    {
+                        "name": "appGwPublicFrontendIpIPv4",
+                        "properties": {
+                            "PublicIPAddress": {
+                                "id": "[variables('publicIPRef')[0]]"
+                            }
+                        }
+                    }
+                ],
+                "frontendPorts": [
+                    {
+                        "name": "port_80",
+                        "properties": {
+                            "Port": 80
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "pool-lfndoc-dev",
+                        "properties": {
+                            "backendAddresses": [
+                                {
+                                    "ipAddress": "172.16.250.45",
+                                    "fqdn": null
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "backendHttpSettingsCollection": [
+                    {
+                        "name": "http-settings",
+                        "properties": {
+                            "Port": 80,
+                            "Protocol": "Http",
+                            "cookieBasedAffinity": "Disabled",
+                            "requestTimeout": 20
+                        }
+                    }
+                ],
+                "backendSettingsCollection": [],
+                "httpListeners": [
+                    {
+                        "name": "listener-dev-http",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('applicationGatewayId'), '/frontendIPConfigurations/appGwPublicFrontendIpIPv4')]"
+                            },
+                            "frontendPort": {
+                                "id": "[concat(variables('applicationGatewayId'), '/frontendPorts/port_80')]"
+                            },
+                            "protocol": "Http",
+                            "sslCertificate": null,
+                            "customErrorConfigurations": []
+                        }
+                    }
+                ],
+                "listeners": [],
+                "requestRoutingRules": [
+                    {
+                        "Name": "rule-lfndoc-dev-http",
+                        "properties": {
+                            "RuleType": "Basic",
+                            "httpListener": {
+                                "id": "[concat(variables('applicationGatewayId'), '/httpListeners/listener-dev-http')]"
+                            },
+                            "priority": 10,
+                            "backendAddressPool": {
+                                "id": "[concat(variables('applicationGatewayId'), '/backendAddressPools/pool-lfndoc-dev')]"
+                            },
+                            "backendHttpSettings": {
+                                "id": "[concat(variables('applicationGatewayId'), '/backendHttpSettingsCollection/http-settings')]"
+                            }
+                        }
+                    }
+                ],
+                "routingRules": [],
+                "enableHttp2": true,
+                "sslCertificates": [],
+                "probes": [],
+                "autoscaleConfiguration": {
+                    "minCapacity": "[parameters('capacity')]",
+                    "maxCapacity": "[parameters('autoScaleMaxCapacity')]"
+                },
+                "firewallPolicy": {
+                    "id": "/subscriptions/61114f65-fccb-47d8-9dba-c77be4f114ea/resourceGroups/rg-application-gateway-dev-eu2-01/providers/Microsoft.Network/applicationGatewayWebApplicationFirewallPolicies/waf-fbitn-online-application-gateway-dev-eu2-01"
+                }
+            }
+        },
+        {
+            "apiVersion": "2023-02-01",
+            "type": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
+            "name": "waf-fbitn-online-application-gateway-dev-eu2-01",
+            "location": "[parameters('location')]",
+            "tags": {},
+            "properties": {
+                "policySettings": {
+                    "mode": "Detection",
+                    "state": "Enabled",
+                    "fileUploadLimitInMb": 100,
+                    "requestBodyCheck": true,
+                    "maxRequestBodySizeInKb": 128
+                },
+                "managedRules": {
+                    "exclusions": [],
+                    "managedRuleSets": [
+                        {
+                            "ruleSetType": "OWASP",
+                            "ruleSetVersion": "3.2",
+                            "ruleGroupOverrides": null
+                        },
+                        {
+                            "ruleSetType": "Microsoft_BotManagerRuleSet",
+                            "ruleSetVersion": "0.1",
+                            "ruleGroupOverrides": null
+                        }
+                    ]
+                },
+                "customRules": []
+            }
+        },
+        {
+            "apiVersion": "2020-08-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[parameters('publicIpAddressName')[0]]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('sku')[0]]"
+            },
+            "zones": "[parameters('publicIpZones')]",
+            "properties": {
+                "publicIPAddressVersion": "[parameters('ipAddressVersion')[0]]",
+                "publicIPAllocationMethod": "[parameters('allocationMethod')[0]]"
+            }
+        }
+    ]
+}
